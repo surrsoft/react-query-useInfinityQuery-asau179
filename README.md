@@ -1,4 +1,5 @@
 - проба `useInfinityQuery` (React Query)
+- https://github.com/surrsoft/react-query-useInfinityQuery-asau179
 
 # запуск
 - запустить JsonServer - `npm run jserver`
