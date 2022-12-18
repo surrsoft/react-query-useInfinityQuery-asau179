@@ -1,10 +1,7 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { RsuvTxJsonServer } from 'rsuv-lib';
 import { NextParamsType, PageType, QueryFnPrmType } from './types';
-import { PAGE_SIZE } from './constants';
-
-export const QUERY_KEY = ['hello']
-export const TOTAL = 25;
+import { PAGE_SIZE, QUERY_KEY } from './constants';
 
 export function useDataGet(jsonServer: RsuvTxJsonServer) {
 
@@ -18,11 +15,8 @@ export function useDataGet(jsonServer: RsuvTxJsonServer) {
   return useInfiniteQuery<PageType>({
     queryKey: QUERY_KEY,
     queryFn,
-    getNextPageParam: (lastPage: PageType, allPages: PageType[]): NextParamsType | undefined => {
-      debugger; // del+
-      const elemsCount = allPages.reduce((acc, page) => {
-        return acc + page.elems.length
-      }, 0)
+    getNextPageParam: (lastPage: PageType | undefined, allPages: PageType[]): NextParamsType | undefined => {
+      const elemsCount = allPages.reduce((acc, page) => acc + page.elems.length, 0)
       if (elemsCount >= (lastPage?.total ?? 0)) {
         return undefined;
       }

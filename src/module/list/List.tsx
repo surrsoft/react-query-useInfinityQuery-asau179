@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { QUERY_KEY, useDataGet } from './useDataGet';
+import { useDataGet } from './useDataGet';
 import { RsuvTxJsonServer } from 'rsuv-lib';
 import { ElemType, NextParamsType, PageType, QueryFnPrmType, NextParamsListType } from './types';
 import { QueryClient, useQueryClient } from '@tanstack/react-query';
-import { PAGE_SIZE } from './constants';
+import { PAGE_SIZE, QUERY_KEY } from './constants';
 import loChunk from 'lodash/chunk'
 
 const Container = styled.div``
@@ -117,6 +117,7 @@ export function List({ some }: ParamsType) {
 
   const result = useDataGet(jsonServer);
   const { data, hasNextPage, fetchNextPage, refetch } = result;
+  console.log('!!-!!-!!  data {221218004545}\n', data); // del+
   const pages: PageType[] | undefined = data?.pages;
   const pageParams = data?.pageParams as NextParamsListType | undefined;
 
