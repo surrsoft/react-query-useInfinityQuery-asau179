@@ -3,9 +3,10 @@ import styled from 'styled-components';
 import { useDataGet } from './useDataGet';
 import { RsuvTxJsonServer } from 'rsuv-lib';
 import { ElemType, NextParamsListType, PageType, QueryFnPrmType } from './types';
-import { QueryClient, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { PAGE_SIZE, QUERY_KEY } from './constants';
-import loChunk from 'lodash/chunk'
+import { infiniteDeleteElemCacheUpdateHelper } from './utils/InfiniteDeleteElemCacheUpdateHelper';
+import { infiniteDeleteTrimHelper } from './utils/InfiniteDeleteTrimHelper';
 
 const Container = styled.div``
 
@@ -39,87 +40,16 @@ export interface ParamsType {
   some?: string;
 }
 
-interface ElemDeleteHelperInType {
-  pageParams: NextParamsListType,
-  pages: PageType[],
-  idDeletedElem: string,
-  hasNextPage?: boolean,
-  queryClient?: QueryClient,
-  queryKey?: any[]
-}
-
-export interface ElemDeleteHelperRetType {
-  pageParamsNext: NextParamsListType,
-  pagesNext: PageType[]
-}
-
-function infiniteElemDeleteHelper(
-  {
-    pageParams,
-    pages,
-    idDeletedElem,
-    hasNextPage = false,
-    queryClient,
-    queryKey
-  }: ElemDeleteHelperInType
-): ElemDeleteHelperRetType {
-  let pageParamsNext = [...pageParams]
-  let pagesNext = [...pages];
-
-  // обновление поля total
-  const newTotal = pages[pages.length - 1].total - 1
-  pagesNext.forEach(page => page.total = newTotal)
-
-  // все элементы всех страниц в том же порядке, за исключением удаляемого элемента
-  const elems: ElemType[] = pagesNext
-    .reduce((acc: ElemType[], page) => {
-      acc.push(...page.elems)
-      return acc;
-    }, [])
-    .filter(elem => elem.id !== idDeletedElem)
-
-  // двигаем элементы для компенсации удалённого элемента ("уплотняем" к началу списка)
-  const chunks = loChunk(elems, PAGE_SIZE)
-  pagesNext = pagesNext.reduce((acc: PageType[], page, index) => {
-    // чанков может получится меньше чем страниц
-    page.elems = chunks[index] || []
-    acc.push(page)
-    return acc;
-  }, [])
-
-  if (hasNextPage) {
-    // удаляем последнюю страницу и её параметры
-    pagesNext.splice(pagesNext.length - 1)
-    pageParamsNext.splice(pageParamsNext.length - 1)
-  } else {
-    // если у последней страницы теперь нет элементов, удаляем её и её параметры
-    if (pagesNext[pagesNext.length - 1].elems.length < 1) {
-      pagesNext = pagesNext.filter(page => page.elems.length > 0)
-      pageParamsNext.splice(pageParamsNext.length - 1)
-    }
-  }
-
-  if (queryClient && queryKey) {
-    // обновляем кэш новыми данными
-    queryClient.setQueryData(queryKey, () => {
-      return {
-        pages: pagesNext,
-        pageParams: pageParamsNext
-      }
-    })
-  }
-
-  return { pageParamsNext, pagesNext };
-}
-
 export function List({ some }: ParamsType) {
   const [renderForce, renderForceSet] = useState(true); // del+
 
-  const { data, hasNextPage, fetchNextPage, refetch,  } = useDataGet(jsonServer);
+  const { data, hasNextPage, fetchNextPage } = useDataGet(jsonServer);
   console.log('!!-!!-!!  data {221218004545}\n', data); // del+
 
   const pages: PageType[] | undefined = data?.pages;
   const pageParams = data?.pageParams as NextParamsListType | undefined;
+
+  infiniteDeleteTrimHelper({ pages, pageParams });
 
   const queryClient = useQueryClient()
 
@@ -132,16 +62,14 @@ export function List({ some }: ParamsType) {
     await jsonServer.elemDelete(id)
 
     if (pages && pages.length > 0 && pageParams) {
-
-      infiniteElemDeleteHelper({
+      infiniteDeleteElemCacheUpdateHelper({
+        pageSize: PAGE_SIZE,
         pageParams,
         pages,
         idDeletedElem: id,
-        hasNextPage,
         queryClient,
         queryKey: QUERY_KEY
       });
-
       if (hasNextPage) {
         // перезапрашиваем последнюю страницу
         const fetchNextObj: QueryFnPrmType = {
@@ -150,7 +78,6 @@ export function List({ some }: ParamsType) {
             pageSize: PAGE_SIZE
           }
         }
-        debugger; // del+
         await fetchNextPage(fetchNextObj)
       } else {
         // принуждаем к перерендеру т.к. queryClient.setQueryData() перерендер не инициирует
