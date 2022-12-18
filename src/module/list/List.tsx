@@ -36,14 +36,14 @@ const DelButtonStyled = styled.button`
   margin-left: 8px;
 `
 
-export interface ParamsType {
-  some?: string;
-}
-
-export function List({ some }: ParamsType) {
+/**
+ *
+ * @constructor
+ */
+export function List() {
   const [renderForce, renderForceSet] = useState(true); // del+
 
-  const { data, hasNextPage, fetchNextPage } = useDataGet(jsonServer);
+  const { data, hasNextPage, fetchNextPage, refetch } = useDataGet(jsonServer);
   console.log('!!-!!-!!  data {221218004545}\n', data); // del+
 
   const pages: PageType[] | undefined = data?.pages;
@@ -87,8 +87,13 @@ export function List({ some }: ParamsType) {
 
   }
 
+  const handleRefetch = async () => {
+    await refetch()
+  }
+
   return <Container>
     <h2>list</h2>
+    <button style={{ marginBottom: "16px" }} onClick={handleRefetch}>refetch</button>
     <PagesStyled>
       {pages && pages.map((page: PageType, index: number) => {
         return <PageStyled key={index}>

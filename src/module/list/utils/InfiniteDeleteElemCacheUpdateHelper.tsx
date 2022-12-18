@@ -4,37 +4,26 @@ import loChunk from 'lodash/chunk';
 
 interface ElemDeleteHelperInType {
   pageSize: number;
-  pageParams: NextParamsListType,
   pages: PageType[],
+  pageParams: NextParamsListType,
   idDeletedElem: string,
   queryClient?: QueryClient,
   queryKey?: any[]
 }
 
-export interface ElemDeleteHelperRetType {
-  pageParamsNext: NextParamsListType,
-  pagesNext: PageType[]
-}
-
+/**
+ * В ходе работы мутирует параметры {@param pages} и {@link pageParams}
+ */
 export function infiniteDeleteElemCacheUpdateHelper(
-  {
-    pageSize,
-    pageParams,
-    pages,
-    idDeletedElem,
-    queryClient,
-    queryKey
-  }: ElemDeleteHelperInType
-): ElemDeleteHelperRetType {
-  let pageParamsNext = [...pageParams]
-  let pagesNext = [...pages];
+  { pageSize, pageParams, pages, idDeletedElem, queryClient, queryKey }: ElemDeleteHelperInType
+): void {
 
   // обновление поля total
   const newTotal = pages[pages.length - 1].total - 1
-  pagesNext.forEach(page => page.total = newTotal)
+  pages.forEach(page => page.total = newTotal)
 
   // все элементы всех страниц в том же порядке, за исключением удаляемого элемента
-  const elems: ElemType[] = pagesNext
+  const elems: ElemType[] = pages
     .reduce((acc: ElemType[], page) => {
       acc.push(...page.elems)
       return acc;
@@ -43,7 +32,7 @@ export function infiniteDeleteElemCacheUpdateHelper(
 
   // двигаем элементы для компенсации удалённого элемента ("уплотняем" к началу списка)
   const chunks = loChunk(elems, pageSize)
-  pagesNext = pagesNext.reduce((acc: PageType[], page, index) => {
+  pages = pages.reduce((acc: PageType[], page, index) => {
     // чанков может получится меньше чем страниц
     page.elems = chunks[index] || []
     acc.push(page)
@@ -52,13 +41,11 @@ export function infiniteDeleteElemCacheUpdateHelper(
 
   if (queryClient && queryKey) {
     // обновляем кэш новыми данными
-    queryClient.setQueryData(queryKey, () => {
-      return {
-        pages: pagesNext,
-        pageParams: pageParamsNext
-      }
+    queryClient.setQueryData(queryKey, (data: any) => {
+      console.log('!!-!!-!!  data {221218203509}\n', data); // del+
+      debugger; // del+
+      return { pages, pageParams }
     })
   }
 
-  return { pageParamsNext, pagesNext };
 }

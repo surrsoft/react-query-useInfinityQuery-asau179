@@ -16,6 +16,9 @@ export function useDataGet(jsonServer: RsuvTxJsonServer) {
     queryKey: QUERY_KEY,
     queryFn,
     getNextPageParam: (lastPage: PageType | undefined, allPages: PageType[]): NextParamsType | undefined => {
+      console.log('!!-!!-!! 1959- lastPage {221218195756}\n', lastPage); // del+
+      console.log('!!-!!-!! 1959- allPages {221218195915}\n', allPages); // del+
+
       const elemsCount = allPages.reduce((acc, page) => acc + page.elems.length, 0)
       if (elemsCount >= (lastPage?.total ?? 0)) {
         return undefined;

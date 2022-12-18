@@ -15,6 +15,6 @@ export interface NextParamsType {
   pageSize: number
 }
 
-export type QueryFnPrmType = Partial<{ pageParam?: NextParamsType }>
+export type QueryFnPrmType = { pageParam?: NextParamsType }
 
 export type NextParamsListType = (NextParamsType | undefined)[]
