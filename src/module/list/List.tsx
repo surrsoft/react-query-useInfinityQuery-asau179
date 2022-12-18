@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import styled from 'styled-components';
 import { useDataGet } from './useDataGet';
 import { RsuvTxJsonServer } from 'rsuv-lib';
-import { ElemType, NextParamsType, PageType, QueryFnPrmType, NextParamsListType } from './types';
+import { ElemType, NextParamsListType, PageType, QueryFnPrmType } from './types';
 import { QueryClient, useQueryClient } from '@tanstack/react-query';
 import { PAGE_SIZE, QUERY_KEY } from './constants';
 import loChunk from 'lodash/chunk'
@@ -94,8 +94,8 @@ function infiniteElemDeleteHelper(
   } else {
     // если у последней страницы теперь нет элементов, удаляем её и её параметры
     if (pagesNext[pagesNext.length - 1].elems.length < 1) {
-      pageParamsNext.splice(pageParamsNext.length - 1)
       pagesNext = pagesNext.filter(page => page.elems.length > 0)
+      pageParamsNext.splice(pageParamsNext.length - 1)
     }
   }
 
@@ -115,9 +115,9 @@ function infiniteElemDeleteHelper(
 export function List({ some }: ParamsType) {
   const [renderForce, renderForceSet] = useState(true); // del+
 
-  const result = useDataGet(jsonServer);
-  const { data, hasNextPage, fetchNextPage, refetch } = result;
+  const { data, hasNextPage, fetchNextPage, refetch,  } = useDataGet(jsonServer);
   console.log('!!-!!-!!  data {221218004545}\n', data); // del+
+
   const pages: PageType[] | undefined = data?.pages;
   const pageParams = data?.pageParams as NextParamsListType | undefined;
 
@@ -133,8 +133,6 @@ export function List({ some }: ParamsType) {
 
     if (pages && pages.length > 0 && pageParams) {
 
-      // ---
-
       infiniteElemDeleteHelper({
         pageParams,
         pages,
@@ -144,8 +142,6 @@ export function List({ some }: ParamsType) {
         queryKey: QUERY_KEY
       });
 
-      // ---
-
       if (hasNextPage) {
         // перезапрашиваем последнюю страницу
         const fetchNextObj: QueryFnPrmType = {
@@ -154,6 +150,7 @@ export function List({ some }: ParamsType) {
             pageSize: PAGE_SIZE
           }
         }
+        debugger; // del+
         await fetchNextPage(fetchNextObj)
       } else {
         // принуждаем к перерендеру т.к. queryClient.setQueryData() перерендер не инициирует
@@ -166,8 +163,8 @@ export function List({ some }: ParamsType) {
   return <Container>
     <h2>list</h2>
     <PagesStyled>
-      {pages && pages.map((page: PageType) => {
-        return <PageStyled>
+      {pages && pages.map((page: PageType, index: number) => {
+        return <PageStyled key={index}>
           {
             page.elems.map((elem: ElemType) => {
               return (<ElemStyled key={elem.id}>
@@ -177,7 +174,6 @@ export function List({ some }: ParamsType) {
             })
           }
         </PageStyled>
-
       })}
     </PagesStyled>
     <ButtonContainerStyled>
