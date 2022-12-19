@@ -7,6 +7,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { PAGE_SIZE, QUERY_KEY } from './constants';
 import { infiniteDeleteElemCacheUpdateHelper } from './utils/InfiniteDeleteElemCacheUpdateHelper';
 import { infiniteDeleteTrimHelper } from './utils/InfiniteDeleteTrimHelper';
+import loCloneDeep from 'lodash/cloneDeep';
 
 const Container = styled.div``
 
@@ -30,6 +31,9 @@ const PagesStyled = styled.div`
 
 const ButtonContainerStyled = styled.div`
   margin-top: 16px;
+`
+const ButtonContainerBStyled = styled.div`
+  margin-bottom: 16px;
 `
 
 const DelButtonStyled = styled.button`
@@ -62,10 +66,12 @@ export function List() {
     await jsonServer.elemDelete(id)
 
     if (pages && pages.length > 0 && pageParams) {
+      const pagesNext = loCloneDeep(pages)
+      const pageParamsNext = loCloneDeep(pageParams)
       infiniteDeleteElemCacheUpdateHelper({
         pageSize: PAGE_SIZE,
-        pageParams,
-        pages,
+        pageParams: pageParamsNext,
+        pages: pagesNext,
         idDeletedElem: id,
         queryClient,
         queryKey: QUERY_KEY
@@ -74,14 +80,11 @@ export function List() {
         // перезапрашиваем последнюю страницу
         const fetchNextObj: QueryFnPrmType = {
           pageParam: {
-            pageNum: pages.length,
+            pageNum: pagesNext.length,
             pageSize: PAGE_SIZE
           }
         }
         await fetchNextPage(fetchNextObj)
-      } else {
-        // принуждаем к перерендеру т.к. queryClient.setQueryData() перерендер не инициирует
-        renderForceSet(!renderForce)
       }
     }
 
@@ -91,9 +94,42 @@ export function List() {
     await refetch()
   }
 
+  const handleInvalidate = async () => {
+    await queryClient.invalidateQueries(QUERY_KEY)
+  }
+
+  const handleTestDel = () => {
+    debugger; // del+
+    queryClient.setQueryData(QUERY_KEY, (old: any) => {
+      console.log('!!-!!-!!  old {221219121227}\n', old); // del+
+      // const next = { ...old }
+      // next.pages = [...next.pages]
+      // next.pages.forEach((page: PageType) => {
+      //   page.elems = [...page.elems]
+      // })
+      // next.pageParams = [...next.pageParams]
+      // next.pages[0].elems.splice(0, 1)
+
+      const next = loCloneDeep(old)
+      next.pages[0].elems.splice(0, 1)
+
+      // const next = {...old}
+      // next.pages[0].elems.splice(0, 1)
+
+      return next;
+    })
+    // renderForceSet(!renderForce)
+  }
+
   return <Container>
     <h2>list</h2>
     <button style={{ marginBottom: "16px" }} onClick={handleRefetch}>refetch</button>
+    <ButtonContainerBStyled>
+      <button onClick={handleInvalidate}>invalidate</button>
+    </ButtonContainerBStyled>
+    <ButtonContainerBStyled>
+      <button onClick={handleTestDel}>test del elem</button>
+    </ButtonContainerBStyled>
     <PagesStyled>
       {pages && pages.map((page: PageType, index: number) => {
         return <PageStyled key={index}>
@@ -111,5 +147,6 @@ export function List() {
     <ButtonContainerStyled>
       <button disabled={!hasNextPage} onClick={handleNext}>next</button>
     </ButtonContainerStyled>
+
   </Container>
 }

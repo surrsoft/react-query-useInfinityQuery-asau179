@@ -43,7 +43,6 @@ export function infiniteDeleteElemCacheUpdateHelper(
     // обновляем кэш новыми данными
     queryClient.setQueryData(queryKey, (data: any) => {
       console.log('!!-!!-!!  data {221218203509}\n', data); // del+
-      debugger; // del+
       return { pages, pageParams }
     })
   }
